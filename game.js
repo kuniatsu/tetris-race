@@ -546,6 +546,56 @@ function draw() {
     ctx.fillStyle = '#001100';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+    // Phase 1の背景枠描画（緑色の領域）
+    if (gameState.phase === PHASES.DISGUISE || gameState.bottomBroken) {
+        const frameWidth = GRID_WIDTH * BLOCK_SIZE;
+        const frameHeight = GRID_HEIGHT * BLOCK_SIZE;
+
+        if (gameState.phase === PHASES.DISGUISE && !gameState.bottomBroken) {
+            // Phase 1: 固定位置の緑色枠
+            ctx.strokeStyle = '#00dd00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, frameWidth, frameHeight);
+
+            // 内側に薄い緑色の背景
+            ctx.fillStyle = 'rgba(0, 150, 0, 0.08)';
+            ctx.fillRect(0, 0, frameWidth, frameHeight);
+        } else if (gameState.bottomBroken) {
+            // 底が抜けたら、枠が下に伸びる演出
+            const extendedHeight = frameHeight + (gameState.board.length - GRID_HEIGHT) * BLOCK_SIZE;
+            ctx.strokeStyle = '#00dd00';
+            ctx.lineWidth = 3;
+
+            // 左の枠線
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, extendedHeight);
+            ctx.stroke();
+
+            // 右の枠線
+            ctx.beginPath();
+            ctx.moveTo(frameWidth, 0);
+            ctx.lineTo(frameWidth, extendedHeight);
+            ctx.stroke();
+
+            // 上の枠線
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(frameWidth, 0);
+            ctx.stroke();
+
+            // ビューポート内で見える部分のみ背景を描画
+            const startRow = Math.floor(gameState.viewportY);
+            const visibleStartY = Math.max(0, (0 - startRow) * BLOCK_SIZE);
+            const visibleEndY = Math.min(CANVAS_HEIGHT, (extendedHeight / BLOCK_SIZE - startRow) * BLOCK_SIZE);
+
+            if (visibleEndY > visibleStartY) {
+                ctx.fillStyle = 'rgba(0, 150, 0, 0.08)';
+                ctx.fillRect(0, visibleStartY, frameWidth, visibleEndY - visibleStartY);
+            }
+        }
+    }
+
     // グリッド描画
     ctx.strokeStyle = '#003300';
     ctx.lineWidth = 0.5;
