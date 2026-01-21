@@ -170,12 +170,28 @@ function rotatePiece(piece, direction) {
 
     const newShape = rotateMatrix(piece.shape, direction);
 
-    // 回転中心を正確に計算（各ブロックの重心）
-    const oldCenter = getShapeCenter(piece.shape);
-    const newCenter = getShapeCenter(newShape);
+    // テトリミノタイプごとの固定回転中心を使用
+    const rotationCenter = getRotationCenter(piece.type);
+    const oldBlocks = getBlockPositions(piece.shape);
+    const newBlocks = getBlockPositions(newShape);
 
-    // 中心を維持するための位置調整
-    const offsetX = Math.round(oldCenter.centerX - newCenter.centerX);
+    // 旧図形で回転中心から各ブロックまでの相対位置を計算
+    const oldOffsets = oldBlocks.map(b => ({
+        x: b.x - rotationCenter.x,
+        y: b.y - rotationCenter.y
+    }));
+
+    // 新図形で回転中心から各ブロックまでの相対位置を計算
+    const newOffsets = newBlocks.map(b => ({
+        x: b.x - rotationCenter.x,
+        y: b.y - rotationCenter.y
+    }));
+
+    // 相対位置の変化から位置調整を計算（最初のブロックベース）
+    let offsetX = 0;
+    if (oldOffsets.length > 0 && newOffsets.length > 0) {
+        offsetX = Math.round(oldOffsets[0].x - newOffsets[0].x);
+    }
 
     const testPiece = { ...piece, shape: newShape, x: piece.x + offsetX };
 
@@ -187,7 +203,16 @@ function rotatePiece(piece, direction) {
         return true;
     }
 
-    // 壁蹴り：左方向に1ブロック移動して回転可能か確認
+    // 壁蹴り：右方向に移動して回転可能か確認
+    testPiece.x = piece.x + offsetX + 1;
+    if (canPlacePiece(testPiece)) {
+        piece.shape = newShape;
+        piece.x = testPiece.x;
+        updateAirResistance(piece, newShape);
+        return true;
+    }
+
+    // 壁蹴り：左方向に移動して回転可能か確認
     testPiece.x = piece.x + offsetX - 1;
     if (canPlacePiece(testPiece)) {
         piece.shape = newShape;
@@ -196,8 +221,17 @@ function rotatePiece(piece, direction) {
         return true;
     }
 
-    // 壁蹴り：右方向に1ブロック移動して回転可能か確認
-    testPiece.x = piece.x + offsetX + 1;
+    // 壁蹴り：右に2ブロック
+    testPiece.x = piece.x + offsetX + 2;
+    if (canPlacePiece(testPiece)) {
+        piece.shape = newShape;
+        piece.x = testPiece.x;
+        updateAirResistance(piece, newShape);
+        return true;
+    }
+
+    // 壁蹴り：左に2ブロック
+    testPiece.x = piece.x + offsetX - 2;
     if (canPlacePiece(testPiece)) {
         piece.shape = newShape;
         piece.x = testPiece.x;
@@ -208,24 +242,33 @@ function rotatePiece(piece, direction) {
     return false;
 }
 
-// シェイプの重心を取得（各ブロックの実際の位置から計算）
-function getShapeCenter(shape) {
+// テトリミノタイプごとの回転中心を取得
+function getRotationCenter(type) {
+    // 標準的なテトリス回転中心
+    // I字は4x4グリッド、その他は3x3コア領域を使用
+    switch(type) {
+        case 'I':
+            return { x: 1.5, y: 1.5 };
+        case 'O':
+            return { x: 1.0, y: 1.0 };
+        default: // T, S, Z, L, J
+            return { x: 1.0, y: 1.0 };
+    }
+}
+
+// シェイプのブロック位置を取得
+function getBlockPositions(shape) {
     const blocks = [];
     for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 4; j++) {
             if (shape[i][j] !== 0) {
-                blocks.push({x: j, y: i});
+                blocks.push({ x: j, y: i });
             }
         }
     }
-
-    if (blocks.length === 0) return {centerX: 1.5, centerY: 1.5};
-
-    const centerX = blocks.reduce((sum, b) => sum + b.x, 0) / blocks.length;
-    const centerY = blocks.reduce((sum, b) => sum + b.y, 0) / blocks.length;
-
-    return {centerX, centerY};
+    return blocks;
 }
+
 
 // 空気抵抗更新
 function updateAirResistance(piece, shape) {
