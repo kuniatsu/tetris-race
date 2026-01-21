@@ -1,0 +1,259 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: #1a1a1a;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 400px;
+}
+
+.game-wrapper {
+    background: #2a2a2a;
+    border: 4px solid #444;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ゲームヘッダー */
+.game-header {
+    background: linear-gradient(180deg, #0a3a0a 0%, #062a06 100%);
+    border-bottom: 2px solid #004400;
+    padding: 12px;
+    font-size: 12px;
+    text-align: center;
+}
+
+.header-message {
+    color: #00ff00;
+    font-weight: bold;
+    text-shadow: 0 0 5px #00ff00;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+}
+
+.score-display {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+    font-size: 11px;
+    color: #00dd00;
+}
+
+.score-display span {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border: 1px solid #004400;
+}
+
+/* ゲーム画面 */
+.game-screen {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    padding: 4px;
+    display: flex;
+    justify-content: center;
+}
+
+#gameCanvas {
+    background: #001100;
+    border: 2px solid #333;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* フッター（コントローラーUI） */
+.game-footer {
+    background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+    border-top: 2px solid #444;
+    padding: 12px;
+}
+
+.controller {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+.btn {
+    padding: 12px;
+    background: linear-gradient(180deg, #555 0%, #333 100%);
+    border: 3px solid #666;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: 'Courier New', monospace;
+    user-select: none;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn:hover {
+    background: linear-gradient(180deg, #666 0%, #444 100%);
+}
+
+.btn:active,
+.btn.pressed {
+    background: linear-gradient(180deg, #444 0%, #222 100%);
+    border-color: #444;
+    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.5);
+    transform: translateY(2px);
+}
+
+.btn span {
+    display: block;
+    text-align: center;
+}
+
+/* ゲーム状態表示 */
+.game-state {
+    background: #1a1a1a;
+    border-top: 1px solid #333;
+    padding: 8px 12px;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    color: #999;
+}
+
+#phase-indicator {
+    font-weight: bold;
+    color: #00ff00;
+}
+
+#game-status {
+    color: #ffcc00;
+}
+
+/* レスポンシブレイアウト */
+@media (min-width: 500px) {
+    .game-container {
+        max-width: 500px;
+    }
+
+    .game-wrapper {
+        border-width: 8px;
+    }
+
+    #gameCanvas {
+        width: 320px;
+        height: 480px;
+    }
+
+    .btn {
+        padding: 16px;
+        font-size: 18px;
+    }
+}
+
+/* タブレット・横向きレイアウト */
+@media (min-width: 769px) {
+    body {
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    }
+
+    .game-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .game-wrapper {
+        border-width: 10px;
+        max-width: 420px;
+        margin: 0 auto;
+    }
+}
+
+/* キャンバスのドット調整 */
+canvas {
+    display: block;
+}
+
+/* ゲームオーバーモーダル */
+.game-over-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.game-over-modal.hidden {
+    display: none;
+}
+
+.game-over-content {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    border: 4px solid #ff0000;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 300px;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+}
+
+.game-over-content h1 {
+    color: #ff0000;
+    margin-bottom: 20px;
+    font-size: 32px;
+    text-shadow: 0 0 10px #ff0000;
+}
+
+.final-score {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 2px solid #ff0000;
+    border-radius: 5px;
+}
+
+.final-score p {
+    color: #00ff00;
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.restart-button {
+    background: linear-gradient(180deg, #ff0000 0%, #cc0000 100%);
+    color: #fff;
+    border: 3px solid #ff3333;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.2s;
+    font-family: 'Courier New', monospace;
+}
+
+.restart-button:hover {
+    background: linear-gradient(180deg, #ff3333 0%, #dd0000 100%);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
+}
+
+.restart-button:active {
+    transform: scale(0.95);
+}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深さ無制限Tetris</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-wrapper">
+            <!-- ゲームヘッダー -->
+            <div class="game-header">
+                <div class="header-message">これはレースゲームです</div>
+                <div class="score-display">
+                    <span>深度: <span id="depth-score">0</span>m</span>
+                    <span>時間: <span id="time-score">0</span>s</span>
+                    <span>総スコア: <span id="total-score">0</span></span>
+                </div>
+            </div>
+
+            <!-- ゲーム画面 -->
+            <div class="game-screen">
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+            </div>
+
+            <!-- フッター（コントローラーUI） -->
+            <div class="game-footer">
+                <div class="controller">
+                    <button class="btn btn-left" id="btn-left" data-key="left">
+                        <span>←</span>
+                    </button>
+                    <button class="btn btn-rotate-ccw" id="btn-rotate-ccw" data-key="rotate-ccw">
+                        <span>⟲</span>
+                    </button>
+                    <button class="btn btn-down" id="btn-down" data-key="down">
+                        <span>↓</span>
+                    </button>
+                    <button class="btn btn-rotate-cw" id="btn-rotate-cw" data-key="rotate-cw">
+                        <span>⟳</span>
+                    </button>
+                    <button class="btn btn-right" id="btn-right" data-key="right">
+                        <span>→</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ゲーム状態表示 -->
+            <div class="game-state">
+                <div id="phase-indicator">Phase 1: 偽装テトリス</div>
+                <div id="game-status">ゲーム進行中</div>
+            </div>
+
+            <!-- ゲームオーバー画面 -->
+            <div id="game-over-modal" class="game-over-modal hidden">
+                <div class="game-over-content">
+                    <h1>ゲームオーバー</h1>
+                    <div class="final-score">
+                        <p>最終スコア: <span id="final-score">0</span></p>
+                        <p>最大深度: <span id="final-depth">0</span>m</p>
+                        <p>生存時間: <span id="final-time">0</span>s</p>
+                    </div>
+                    <button id="restart-btn" class="restart-button">もう一度プレイ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
