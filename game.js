@@ -70,6 +70,9 @@ const COLORS = {
     L: '#ff8800'
 };
 
+// dev モードチェック
+const isDevMode = new URLSearchParams(window.location.search).has('dev');
+
 // ゲーム状態
 let gameState = {
     phase: PHASES.DISGUISE,
@@ -142,8 +145,16 @@ function startGame() {
 
 // ランダムなテトリミノ生成
 function createRandomPiece() {
-    const types = Object.keys(TETRIMINOS);
-    const type = types[Math.floor(Math.random() * types.length)];
+    let type;
+
+    // dev モードの場合は I型（縦棒）のみを生成
+    if (isDevMode) {
+        type = 'I';
+    } else {
+        const types = Object.keys(TETRIMINOS);
+        type = types[Math.floor(Math.random() * types.length)];
+    }
+
     return {
         type: type,
         shape: JSON.parse(JSON.stringify(TETRIMINOS[type])),
