@@ -161,30 +161,39 @@ function rotatePiece(piece, direction) {
     // 回転後のスペース確認
     if (canPlacePiece(testPiece)) {
         piece.shape = newShape;
-
-        // Phase 3以降：テトリミノの向きで空気抵抗を決定
-        if (gameState.phase >= PHASES.ACCELERATION) {
-            // I字が横向きの場合、または他のテトリミノが横向きの場合
-            // 簡単な判定：幅が高さより大きい場合は空気抵抗大
-            const width = 4;
-            const height = 4;
-            let hasContent = false;
-            for (let i = 0; i < 4; i++) {
-                for (let j = 0; j < 4; j++) {
-                    if (newShape[i][j] === 1) {
-                        hasContent = true;
-                    }
-                }
-            }
-            // 簡易的な判定：I字の場合
-            if (piece.type === 'I') {
-                gameState.airResistance = 1; // 横向きI字は空気抵抗大
-            }
-        }
-
+        updateAirResistance(piece, newShape);
         return true;
     }
+
+    // 壁蹴り：左方向に1ブロック移動して回転可能か確認
+    testPiece.x = piece.x - 1;
+    if (canPlacePiece(testPiece)) {
+        piece.shape = newShape;
+        piece.x = testPiece.x;
+        updateAirResistance(piece, newShape);
+        return true;
+    }
+
+    // 壁蹴り：右方向に1ブロック移動して回転可能か確認
+    testPiece.x = piece.x + 1;
+    if (canPlacePiece(testPiece)) {
+        piece.shape = newShape;
+        piece.x = testPiece.x;
+        updateAirResistance(piece, newShape);
+        return true;
+    }
+
     return false;
+}
+
+// 空気抵抗更新
+function updateAirResistance(piece, shape) {
+    if (gameState.phase >= PHASES.ACCELERATION) {
+        // I字の場合の空気抵抗判定
+        if (piece.type === 'I') {
+            gameState.airResistance = 1; // I字は常に空気抵抗あり
+        }
+    }
 }
 
 // マトリックス回転
@@ -661,7 +670,12 @@ function setupUI() {
     const buttons = {
         'btn-left': () => movePiece(-1, 0),
         'btn-right': () => movePiece(1, 0),
-        'btn-down': () => movePiece(0, 1),
+        'btn-down': () => {
+            // ソフトドロップ - 複数ステップ落下
+            for (let i = 0; i < 4; i++) {
+                if (!movePiece(0, 1)) break;
+            }
+        },
         'btn-rotate-cw': () => rotatePiece(gameState.currentPiece, 1),
         'btn-rotate-ccw': () => rotatePiece(gameState.currentPiece, -1)
     };
