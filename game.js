@@ -317,20 +317,17 @@ function checkLineClears() {
     const rowsToDelete = [];
     let bottomLineCleared = false;
 
-    // 最初にボトムラインをクリアしたかチェック
-    if (gameState.phase === PHASES.DISGUISE) {
-        const lastRowIndex = GRID_HEIGHT - 1;
-        if (gameState.board[lastRowIndex] && gameState.board[lastRowIndex].every(cell => cell !== 0)) {
-            bottomLineCleared = true;
-        }
-    }
-
     // クリア対象のラインを探す
     for (let row = 0; row < gameState.board.length; row++) {
         if (gameState.board[row].every(cell => cell !== 0)) {
             rowsToDelete.push(row);
             linesCleared++;
         }
+    }
+
+    // ボトムラインがクリアされたかチェック（実際にクリアされるラインの中に最下行が含まれているか）
+    if (gameState.phase === PHASES.DISGUISE && rowsToDelete.includes(GRID_HEIGHT - 1)) {
+        bottomLineCleared = true;
     }
 
     // ラインを削除
