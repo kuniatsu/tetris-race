@@ -361,6 +361,7 @@ function transitionToPhase(newPhase) {
         case PHASES.FREE_FALL:
             gameState.freefall_start_time = Date.now();
             gameState.gravity = 1; // 自由落下は通常速度
+            gameState.viewportY = GRID_HEIGHT; // ビューポートをリセット（底を超えた直後から表示）
             break;
         case PHASES.ACCELERATION:
             gameState.acceleration_start_time = Date.now();
@@ -536,12 +537,10 @@ function draw() {
 
     // ビューポート更新（無限スクロール用）
     if (gameState.currentPiece && gameState.phase >= PHASES.FREE_FALL) {
-        // ピースが画面下部に来たらスクロール
-        const pieceBottomY = gameState.currentPiece.y + 4;
-        const viewportBottom = gameState.viewportY + GRID_HEIGHT - 3;
-        if (pieceBottomY > viewportBottom) {
-            gameState.viewportY = pieceBottomY - GRID_HEIGHT + 3;
-        }
+        // ピースが常に画面の上部（上から4行目）に表示されるようにスクロール
+        const pieceTopY = gameState.currentPiece.y;
+        const targetViewportY = Math.max(GRID_HEIGHT, pieceTopY - 4);
+        gameState.viewportY = targetViewportY;
     }
 
     // キャンバス全体を黒で塗りつぶし
