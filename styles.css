@@ -38,14 +38,6 @@ body {
     text-align: center;
 }
 
-.header-message {
-    color: #00ff00;
-    font-weight: bold;
-    text-shadow: 0 0 5px #00ff00;
-    margin-bottom: 8px;
-    letter-spacing: 2px;
-}
-
 .score-display {
     display: flex;
     justify-content: space-around;
