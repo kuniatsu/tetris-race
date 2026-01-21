@@ -470,8 +470,8 @@ function updateGame() {
         }
 
         if (!moved) {
-            checkLineClears();
             lockPiece();
+            checkLineClears();
         }
     }
 
