@@ -411,6 +411,7 @@ function transitionToPhase(newPhase) {
             gameState.freefall_start_time = Date.now();
             gameState.gravity = 1; // 自由落下は通常速度
             gameState.viewportY = GRID_HEIGHT; // ビューポートをリセット（底を超えた直後から表示）
+            generateObstacles(); // 障害物を生成開始
             break;
         case PHASES.ACCELERATION:
             gameState.acceleration_start_time = Date.now();
