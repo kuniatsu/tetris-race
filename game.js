@@ -170,12 +170,12 @@ function rotatePiece(piece, direction) {
 
     const newShape = rotateMatrix(piece.shape, direction);
 
-    // 回転前後のブロックの有効範囲を計算
-    const oldBounds = getShapeBounds(piece.shape);
-    const newBounds = getShapeBounds(newShape);
+    // 回転中心を正確に計算（各ブロックの重心）
+    const oldCenter = getShapeCenter(piece.shape);
+    const newCenter = getShapeCenter(newShape);
 
-    // ブロックの中心を基準にするための位置調整
-    const offsetX = Math.round((oldBounds.width - newBounds.width) / 2);
+    // 中心を維持するための位置調整
+    const offsetX = Math.round(oldCenter.centerX - newCenter.centerX);
 
     const testPiece = { ...piece, shape: newShape, x: piece.x + offsetX };
 
@@ -208,29 +208,23 @@ function rotatePiece(piece, direction) {
     return false;
 }
 
-// シェイプの有効範囲を取得
-function getShapeBounds(shape) {
-    let minX = 4, maxX = -1, minY = 4, maxY = -1;
-
+// シェイプの重心を取得（各ブロックの実際の位置から計算）
+function getShapeCenter(shape) {
+    const blocks = [];
     for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 4; j++) {
             if (shape[i][j] !== 0) {
-                minX = Math.min(minX, j);
-                maxX = Math.max(maxX, j);
-                minY = Math.min(minY, i);
-                maxY = Math.max(maxY, i);
+                blocks.push({x: j, y: i});
             }
         }
     }
 
-    return {
-        minX: minX === 4 ? 0 : minX,
-        maxX: maxX === -1 ? 0 : maxX,
-        minY: minY === 4 ? 0 : minY,
-        maxY: maxY === -1 ? 0 : maxY,
-        width: (maxX === -1 ? 0 : maxX - minX + 1),
-        height: (maxY === -1 ? 0 : maxY - minY + 1)
-    };
+    if (blocks.length === 0) return {centerX: 1.5, centerY: 1.5};
+
+    const centerX = blocks.reduce((sum, b) => sum + b.x, 0) / blocks.length;
+    const centerY = blocks.reduce((sum, b) => sum + b.y, 0) / blocks.length;
+
+    return {centerX, centerY};
 }
 
 // 空気抵抗更新
