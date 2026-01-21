@@ -845,8 +845,15 @@ function drawNextPieces() {
 // 小さいキャンバスにピース描画
 function drawSmallPiece(canvasId, piece) {
     const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const blockSize = 16;
+
+    // 背景をクリア
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // 背景
     ctx.fillStyle = '#1a1a1a';
