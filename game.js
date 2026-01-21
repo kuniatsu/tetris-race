@@ -692,14 +692,19 @@ function setupKeyboard() {
     const keyActions = {
         'ArrowLeft': () => movePiece(-1, 0),
         'ArrowRight': () => movePiece(1, 0),
-        'ArrowDown': () => movePiece(0, 1),
+        'ArrowDown': () => {
+            // ソフトドロップ - 複数ステップ落下
+            for (let i = 0; i < 4; i++) {
+                if (!movePiece(0, 1)) break;
+            }
+        },
         'ArrowUp': (e) => {
             e.preventDefault();
             rotatePiece(gameState.currentPiece, 1);
         },
         ' ': (e) => {
             e.preventDefault();
-            // ハードドロップまたはブースト
+            // ハードドロップ - 底まで一気に落下
             while (movePiece(0, 1)) {}
         }
     };
