@@ -342,8 +342,12 @@ function checkLineClears() {
     }
 
     // ラインを削除
+    // 逆順でsplice()を実行（インデックスのズレを防ぐため）
     for (let i = rowsToDelete.length - 1; i >= 0; i--) {
         gameState.board.splice(rowsToDelete[i], 1);
+    }
+    // 削除した行数分の空行を上に追加
+    for (let i = 0; i < rowsToDelete.length; i++) {
         gameState.board.unshift(Array(GRID_WIDTH).fill(0));
     }
 
