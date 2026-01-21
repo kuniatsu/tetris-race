@@ -169,17 +169,26 @@ function rotatePiece(piece, direction) {
     if (!piece) return;
 
     const newShape = rotateMatrix(piece.shape, direction);
-    const testPiece = { ...piece, shape: newShape };
+
+    // 回転前後のブロックの有効範囲を計算
+    const oldBounds = getShapeBounds(piece.shape);
+    const newBounds = getShapeBounds(newShape);
+
+    // ブロックの中心を基準にするための位置調整
+    const offsetX = Math.round((oldBounds.width - newBounds.width) / 2);
+
+    const testPiece = { ...piece, shape: newShape, x: piece.x + offsetX };
 
     // 回転後のスペース確認
     if (canPlacePiece(testPiece)) {
         piece.shape = newShape;
+        piece.x = testPiece.x;
         updateAirResistance(piece, newShape);
         return true;
     }
 
     // 壁蹴り：左方向に1ブロック移動して回転可能か確認
-    testPiece.x = piece.x - 1;
+    testPiece.x = piece.x + offsetX - 1;
     if (canPlacePiece(testPiece)) {
         piece.shape = newShape;
         piece.x = testPiece.x;
@@ -188,7 +197,7 @@ function rotatePiece(piece, direction) {
     }
 
     // 壁蹴り：右方向に1ブロック移動して回転可能か確認
-    testPiece.x = piece.x + 1;
+    testPiece.x = piece.x + offsetX + 1;
     if (canPlacePiece(testPiece)) {
         piece.shape = newShape;
         piece.x = testPiece.x;
@@ -197,6 +206,31 @@ function rotatePiece(piece, direction) {
     }
 
     return false;
+}
+
+// シェイプの有効範囲を取得
+function getShapeBounds(shape) {
+    let minX = 4, maxX = -1, minY = 4, maxY = -1;
+
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+            if (shape[i][j] !== 0) {
+                minX = Math.min(minX, j);
+                maxX = Math.max(maxX, j);
+                minY = Math.min(minY, i);
+                maxY = Math.max(maxY, i);
+            }
+        }
+    }
+
+    return {
+        minX: minX === 4 ? 0 : minX,
+        maxX: maxX === -1 ? 0 : maxX,
+        minY: minY === 4 ? 0 : minY,
+        maxY: maxY === -1 ? 0 : maxY,
+        width: (maxX === -1 ? 0 : maxX - minX + 1),
+        height: (maxY === -1 ? 0 : maxY - minY + 1)
+    };
 }
 
 // 空気抵抗更新
@@ -450,6 +484,9 @@ function generateObstaclePattern(type, startY) {
 // ゲーム更新
 function updateGame() {
     if (!gameState.gameActive) return;
+
+    // キーボード入力処理（長押し対応）
+    processKeyboardInput();
 
     gameState.time = Math.floor((Date.now() - gameState.startTime) / 1000);
 
@@ -786,46 +823,50 @@ function setupUI() {
 }
 
 // キーボード操作
+const keysPressed = {};
+
 function setupKeyboard() {
-    const keyActions = {
-        'ArrowLeft': () => movePiece(-1, 0),
-        'ArrowRight': () => movePiece(1, 0),
-        'ArrowDown': () => {
-            // ソフトドロップ - 複数ステップ落下
-            for (let i = 0; i < 4; i++) {
-                if (!movePiece(0, 1)) break;
-            }
-        },
-        'ArrowUp': (e) => {
-            e.preventDefault();
-            rotatePiece(gameState.currentPiece, 1);
-        },
-        ' ': (e) => {
-            e.preventDefault();
-            // ハードドロップ - 底まで一気に落下
-            while (movePiece(0, 1)) {}
-        }
-    };
-
+    // キーの押下状態を追跡
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Shift') return; // Shiftキーは特別処理
+        if (e.key === 'Shift') return;
+        keysPressed[e.key] = true;
 
+        // 回転キーと硬いドロップは即座に実行
         if (e.key === 'ArrowUp' && e.shiftKey) {
             e.preventDefault();
-            rotatePiece(gameState.currentPiece, -1); // 左回転
-            // ボタンUIの視覚フィードバック（逆時計回り）
+            rotatePiece(gameState.currentPiece, -1);
             const btn = document.getElementById('btn-rotate-ccw');
             btn.classList.add('pressed');
             setTimeout(() => btn.classList.remove('pressed'), 100);
-            return;
-        }
-
-        if (keyActions[e.key]) {
-            keyActions[e.key](e);
-            // ボタンUIの視覚フィードバック
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            rotatePiece(gameState.currentPiece, 1);
             updateButtonVisuals(e.key);
+        } else if (e.key === ' ') {
+            e.preventDefault();
+            while (movePiece(0, 1)) {}
         }
     });
+
+    document.addEventListener('keyup', (e) => {
+        keysPressed[e.key] = false;
+    });
+}
+
+// キーボード入力処理（ゲームループから呼び出し）
+function processKeyboardInput() {
+    if (keysPressed['ArrowLeft']) {
+        movePiece(-1, 0);
+    }
+    if (keysPressed['ArrowRight']) {
+        movePiece(1, 0);
+    }
+    if (keysPressed['ArrowDown']) {
+        // ソフトドロップ - 複数ステップ落下（長押し対応）
+        for (let i = 0; i < 4; i++) {
+            if (!movePiece(0, 1)) break;
+        }
+    }
 }
 
 // ボタンUI視覚フィードバック
