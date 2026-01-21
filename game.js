@@ -123,7 +123,7 @@ function startGame() {
     gameState.startTime = Date.now();
     gameState.phaseStartTime = Date.now();
     gameState.bottomBroken = false;
-    gameState.gravity = 1;
+    gameState.gravity = 0.5; // Phase 1は遅い落下速度
     gameState.fallCounter = 0;
     gameState.obstacles = [];
     gameState.freefall_start_time = 0;
@@ -303,24 +303,34 @@ function lockPiece() {
 function checkLineClears() {
     let linesCleared = 0;
     const rowsToDelete = [];
+    let bottomLineCleared = false;
 
-    for (let row = 0; row < GRID_HEIGHT; row++) {
+    // 最初にボトムラインをクリアしたかチェック
+    if (gameState.phase === PHASES.DISGUISE) {
+        const lastRowIndex = GRID_HEIGHT - 1;
+        if (gameState.board[lastRowIndex] && gameState.board[lastRowIndex].every(cell => cell !== 0)) {
+            bottomLineCleared = true;
+        }
+    }
+
+    // クリア対象のラインを探す
+    for (let row = 0; row < gameState.board.length; row++) {
         if (gameState.board[row].every(cell => cell !== 0)) {
             rowsToDelete.push(row);
             linesCleared++;
         }
     }
 
-    // Phase 1でボトムラインをクリアした場合、底を抜く
-    if (gameState.phase === PHASES.DISGUISE && rowsToDelete.includes(GRID_HEIGHT - 1)) {
-        gameState.bottomBroken = true;
-        transitionToPhase(PHASES.FREE_FALL);
-    }
-
     // ラインを削除
     for (let i = rowsToDelete.length - 1; i >= 0; i--) {
         gameState.board.splice(rowsToDelete[i], 1);
         gameState.board.unshift(Array(GRID_WIDTH).fill(0));
+    }
+
+    // Phase 1でボトムラインをクリアした場合、底を抜く
+    if (bottomLineCleared) {
+        gameState.bottomBroken = true;
+        transitionToPhase(PHASES.FREE_FALL);
     }
 
     // スコア加算
@@ -339,13 +349,14 @@ function transitionToPhase(newPhase) {
     switch (newPhase) {
         case PHASES.FREE_FALL:
             gameState.freefall_start_time = Date.now();
+            gameState.gravity = 1; // 自由落下は通常速度
             break;
         case PHASES.ACCELERATION:
             gameState.acceleration_start_time = Date.now();
-            gameState.gravity = 2;
+            gameState.gravity = 2; // 加速フェーズは速度2倍
             break;
         case PHASES.ENDLESS_DRIFT:
-            gameState.gravity = 3;
+            gameState.gravity = 3; // エンドレスは速度3倍
             generateObstacles();
             break;
     }
