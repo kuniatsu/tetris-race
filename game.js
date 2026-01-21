@@ -342,6 +342,8 @@ function checkLineClears() {
     // Phase 1でボトムラインをクリアした場合、底を抜く
     if (bottomLineCleared) {
         gameState.bottomBroken = true;
+        // ボードを大きく拡張して、壁が下に伸びる演出を実現
+        expandBoard(gameState.board.length + 50);
         transitionToPhase(PHASES.FREE_FALL);
     }
 
