@@ -77,6 +77,7 @@ let gameState = {
     boardHeight: GRID_HEIGHT, // 動的ボード高さ
     currentPiece: null,
     nextPiece: null,
+    nextPiece2: null,
     score: 0,
     depth: 0,
     depthDistance: 0, // 実際の落下距離
@@ -134,6 +135,7 @@ function startGame() {
 
     gameState.currentPiece = createRandomPiece();
     gameState.nextPiece = createRandomPiece();
+    gameState.nextPiece2 = createRandomPiece();
 
     updateDisplay();
 }
@@ -296,7 +298,8 @@ function lockPiece() {
 
     // 次のピースを生成
     gameState.currentPiece = gameState.nextPiece;
-    gameState.nextPiece = createRandomPiece();
+    gameState.nextPiece = gameState.nextPiece2;
+    gameState.nextPiece2 = createRandomPiece();
 
     // 空気抵抗をリセット
     gameState.airResistance = 0;
@@ -675,6 +678,9 @@ function draw() {
     // 描画コンテキストを復元
     ctx.restore();
 
+    // ネクストピース描画
+    drawNextPieces();
+
     // ゲームオーバー表示
     if (gameState.gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -819,6 +825,81 @@ function updateButtonVisuals(key) {
         btn.classList.add('pressed');
         setTimeout(() => btn.classList.remove('pressed'), 100);
     }
+}
+
+// ネクストピース描画
+function drawNextPieces() {
+    // NEXT
+    if (gameState.nextPiece) {
+        drawSmallPiece('nextCanvas', gameState.nextPiece);
+    }
+
+    // NEXT 2
+    if (gameState.nextPiece2) {
+        drawSmallPiece('nextCanvas2', gameState.nextPiece2);
+    }
+}
+
+// 小さいキャンバスにピース描画
+function drawSmallPiece(canvasId, piece) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const blockSize = 16;
+
+    // 背景
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // グリッド
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * blockSize, 0);
+        ctx.lineTo(i * blockSize, canvas.height);
+        ctx.stroke();
+    }
+    for (let i = 0; i <= 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, i * blockSize);
+        ctx.lineTo(canvas.width, i * blockSize);
+        ctx.stroke();
+    }
+
+    // ピースを中央に配置
+    const offsetX = (canvas.width - 64) / 2;
+    const offsetY = (canvas.height - 64) / 2;
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+
+    // ピース描画
+    const color = COLORS[piece.type];
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+            if (piece.shape[i][j] !== 0) {
+                const x = j * blockSize;
+                const y = i * blockSize;
+
+                ctx.fillStyle = color;
+                ctx.fillRect(x + 1, y + 1, blockSize - 2, blockSize - 2);
+
+                // 3D効果
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + 1, y + 1, blockSize - 2, blockSize - 2);
+
+                ctx.strokeStyle = '#000000';
+                ctx.beginPath();
+                ctx.moveTo(x + blockSize - 2, y + 1);
+                ctx.lineTo(x + blockSize - 2, y + blockSize - 2);
+                ctx.lineTo(x + 1, y + blockSize - 2);
+                ctx.stroke();
+            }
+        }
+    }
+
+    ctx.restore();
 }
 
 // 初期化

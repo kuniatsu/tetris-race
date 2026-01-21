@@ -68,6 +68,39 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 320px;
+    gap: 12px;
+}
+
+/* ネクストピース表示 */
+.next-pieces {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.next-piece {
+    background: #2a2a2a;
+    border: 2px solid #444;
+    border-radius: 5px;
+    padding: 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.next-label {
+    font-size: 10px;
+    color: #888;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+#nextCanvas,
+#nextCanvas2 {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    display: block;
 }
 
 #gameCanvas {
