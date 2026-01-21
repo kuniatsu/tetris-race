@@ -589,10 +589,13 @@ function draw() {
 
     // ビューポート更新（無限スクロール用）
     if (gameState.currentPiece && gameState.phase >= PHASES.FREE_FALL) {
-        // ピースが常に画面の上部（上から4行目）に表示されるようにスクロール
-        const pieceTopY = gameState.currentPiece.y;
-        const targetViewportY = Math.max(GRID_HEIGHT, pieceTopY - 4);
-        gameState.viewportY = targetViewportY;
+        // ピースが底を越えた場合のみスクロール開始
+        const pieceBottomY = gameState.currentPiece.y + 4;
+        if (pieceBottomY > GRID_HEIGHT) {
+            // ピースが常に画面の上部（上から4行目）に表示されるようにスクロール
+            const targetViewportY = pieceBottomY - 4;
+            gameState.viewportY = Math.max(gameState.viewportY, targetViewportY);
+        }
     }
 
     // キャンバス全体を黒で塗りつぶし
