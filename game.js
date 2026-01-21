@@ -74,6 +74,7 @@ const COLORS = {
 let gameState = {
     phase: PHASES.DISGUISE,
     board: initializeBoard(),
+    boardHeight: GRID_HEIGHT, // 動的ボード高さ
     currentPiece: null,
     nextPiece: null,
     score: 0,
@@ -92,6 +93,7 @@ let gameState = {
     acceleration_start_time: 0,
     maxYReached: 0, // 最大の深度（最も下に到達したY座標）
     airResistance: 0, // 空気抵抗（0=小、1=大）
+    viewportY: 0, // ビューポート上部のY座標（無限スクロール用）
 };
 
 // ボード初期化
@@ -99,9 +101,18 @@ function initializeBoard() {
     return Array(GRID_HEIGHT).fill(null).map(() => Array(GRID_WIDTH).fill(0));
 }
 
+// ボード拡張（Phase 2以降用）
+function expandBoard(newHeight) {
+    while (gameState.board.length < newHeight) {
+        gameState.board.push(Array(GRID_WIDTH).fill(0));
+    }
+    gameState.boardHeight = gameState.board.length;
+}
+
 // ゲーム開始
 function startGame() {
     gameState.board = initializeBoard();
+    gameState.boardHeight = GRID_HEIGHT;
     gameState.phase = PHASES.DISGUISE;
     gameState.score = 0;
     gameState.depth = 0;
@@ -119,6 +130,7 @@ function startGame() {
     gameState.acceleration_start_time = 0;
     gameState.maxYReached = 0;
     gameState.airResistance = 0;
+    gameState.viewportY = 0;
 
     gameState.currentPiece = createRandomPiece();
     gameState.nextPiece = createRandomPiece();
@@ -198,11 +210,29 @@ function canPlacePiece(piece) {
             const newX = piece.x + j;
             const newY = piece.y + i;
 
-            if (newX < 0 || newX >= GRID_WIDTH || newY < 0 || newY >= GRID_HEIGHT) {
+            // X軸の境界チェック
+            if (newX < 0 || newX >= GRID_WIDTH) {
                 return false;
             }
 
-            if (gameState.board[newY][newX] !== 0) {
+            // Y軸の境界チェック（Phase 2以降は動的ボード対応）
+            if (gameState.phase === PHASES.DISGUISE) {
+                if (newY < 0 || newY >= GRID_HEIGHT) {
+                    return false;
+                }
+            } else {
+                // Phase 2以降は上限のみチェック
+                if (newY < 0) {
+                    return false;
+                }
+                // ボード下限を超えた場合は拡張
+                if (newY >= gameState.board.length) {
+                    expandBoard(newY + 5);
+                }
+            }
+
+            // ボード内容チェック
+            if (newY < gameState.board.length && gameState.board[newY][newX] !== 0) {
                 return false;
             }
         }
@@ -398,6 +428,14 @@ function updateGame() {
         }
     }
 
+    // Phase 2以降でボード拡張
+    if (gameState.phase >= PHASES.FREE_FALL && gameState.currentPiece) {
+        const maxPieceY = gameState.currentPiece.y + 4;
+        if (maxPieceY >= gameState.board.length - 5) {
+            expandBoard(gameState.board.length + 20);
+        }
+    }
+
     // 重力適用（落下カウンターを使用）
     gameState.fallCounter += gameState.gravity;
 
@@ -474,6 +512,16 @@ function draw() {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
+    // ビューポート更新（無限スクロール用）
+    if (gameState.currentPiece && gameState.phase >= PHASES.FREE_FALL) {
+        // ピースが画面下部に来たらスクロール
+        const pieceBottomY = gameState.currentPiece.y + 4;
+        const viewportBottom = gameState.viewportY + GRID_HEIGHT - 3;
+        if (pieceBottomY > viewportBottom) {
+            gameState.viewportY = pieceBottomY - GRID_HEIGHT + 3;
+        }
+    }
+
     // 背景
     ctx.fillStyle = '#001100';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -494,11 +542,17 @@ function draw() {
         ctx.stroke();
     }
 
-    // ボードのブロック描画
-    for (let row = 0; row < GRID_HEIGHT; row++) {
+    // ボードのブロック描画（ビューポート対応）
+    const startRow = Math.floor(gameState.viewportY);
+    const endRow = Math.min(startRow + GRID_HEIGHT, gameState.board.length);
+
+    for (let row = startRow; row < endRow; row++) {
         for (let col = 0; col < GRID_WIDTH; col++) {
-            if (gameState.board[row][col] !== 0) {
-                drawBlock(ctx, col, row, gameState.board[row][col]);
+            if (gameState.board[row] && gameState.board[row][col] !== 0) {
+                const screenY = (row - startRow) * BLOCK_SIZE;
+                if (screenY >= 0 && screenY < CANVAS_HEIGHT) {
+                    drawBlockAt(ctx, col, screenY / BLOCK_SIZE, gameState.board[row][col]);
+                }
             }
         }
     }
@@ -511,8 +565,9 @@ function draw() {
                 if (piece.shape[i][j] !== 0) {
                     const x = piece.x + j;
                     const y = piece.y + i;
-                    if (y >= 0 && y < GRID_HEIGHT && x >= 0 && x < GRID_WIDTH) {
-                        drawBlock(ctx, x, y, piece.type);
+                    const screenY = (y - gameState.viewportY) * BLOCK_SIZE;
+                    if (x >= 0 && x < GRID_WIDTH && screenY >= -BLOCK_SIZE && screenY < CANVAS_HEIGHT) {
+                        drawBlockAt(ctx, x, screenY / BLOCK_SIZE, piece.type);
                     }
                 }
             }
@@ -523,12 +578,15 @@ function draw() {
     if (gameState.phase === PHASES.ENDLESS_DRIFT) {
         ctx.fillStyle = 'rgba(100, 100, 100, 0.5)';
         for (const obstacle of gameState.obstacles) {
-            ctx.fillRect(
-                obstacle.x * BLOCK_SIZE,
-                obstacle.y * BLOCK_SIZE,
-                obstacle.width * BLOCK_SIZE,
-                obstacle.height * BLOCK_SIZE
-            );
+            const screenY = (obstacle.y - gameState.viewportY) * BLOCK_SIZE;
+            if (screenY >= -obstacle.height * BLOCK_SIZE && screenY < CANVAS_HEIGHT) {
+                ctx.fillRect(
+                    obstacle.x * BLOCK_SIZE,
+                    screenY,
+                    obstacle.width * BLOCK_SIZE,
+                    obstacle.height * BLOCK_SIZE
+                );
+            }
         }
     }
 
@@ -543,10 +601,32 @@ function draw() {
     }
 }
 
-// ブロック描画
+// ブロック描画（グリッド座標）
 function drawBlock(ctx, col, row, type) {
     const x = col * BLOCK_SIZE;
     const y = row * BLOCK_SIZE;
+    const color = COLORS[type];
+
+    ctx.fillStyle = color;
+    ctx.fillRect(x + 1, y + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
+
+    // 3D効果
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 1, y + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
+
+    ctx.strokeStyle = '#000000';
+    ctx.beginPath();
+    ctx.moveTo(x + BLOCK_SIZE - 2, y + 1);
+    ctx.lineTo(x + BLOCK_SIZE - 2, y + BLOCK_SIZE - 2);
+    ctx.lineTo(x + 1, y + BLOCK_SIZE - 2);
+    ctx.stroke();
+}
+
+// ブロック描画（画面座標）
+function drawBlockAt(ctx, col, screenRow, type) {
+    const x = col * BLOCK_SIZE;
+    const y = screenRow * BLOCK_SIZE;
     const color = COLORS[type];
 
     ctx.fillStyle = color;
