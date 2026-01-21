@@ -813,6 +813,10 @@ function setupKeyboard() {
         if (e.key === 'ArrowUp' && e.shiftKey) {
             e.preventDefault();
             rotatePiece(gameState.currentPiece, -1); // 左回転
+            // ボタンUIの視覚フィードバック（逆時計回り）
+            const btn = document.getElementById('btn-rotate-ccw');
+            btn.classList.add('pressed');
+            setTimeout(() => btn.classList.remove('pressed'), 100);
             return;
         }
 

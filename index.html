@@ -7,11 +7,11 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="game-container">
-        <div class="game-wrapper">
+    <div id="game-container" class="game-container">
+        <div id="game-wrapper" class="game-wrapper">
             <!-- ゲームヘッダー -->
-            <div class="game-header">
-                <div class="score-display">
+            <div id="game-header" class="game-header">
+                <div id="score-display" class="score-display">
                     <span>深度: <span id="depth-score">0</span>m</span>
                     <span>時間: <span id="time-score">0</span>s</span>
                     <span>総スコア: <span id="total-score">0</span></span>
@@ -19,24 +19,24 @@
             </div>
 
             <!-- ゲーム画面 -->
-            <div class="game-screen">
+            <div id="game-screen" class="game-screen">
                 <canvas id="gameCanvas" width="320" height="480"></canvas>
                 <!-- ネクストピース表示 -->
-                <div class="next-pieces">
-                    <div class="next-piece">
-                        <div class="next-label">NEXT</div>
+                <div id="next-pieces" class="next-pieces">
+                    <div id="next-piece-1" class="next-piece">
+                        <div id="next-label-1" class="next-label">NEXT</div>
                         <canvas id="nextCanvas" width="80" height="80"></canvas>
                     </div>
-                    <div class="next-piece">
-                        <div class="next-label">NEXT 2</div>
+                    <div id="next-piece-2" class="next-piece">
+                        <div id="next-label-2" class="next-label">NEXT 2</div>
                         <canvas id="nextCanvas2" width="80" height="80"></canvas>
                     </div>
                 </div>
             </div>
 
             <!-- フッター（コントローラーUI） -->
-            <div class="game-footer">
-                <div class="controller">
+            <div id="game-footer" class="game-footer">
+                <div id="controller" class="controller">
                     <button class="btn btn-left" id="btn-left" data-key="left">
                         <span>←</span>
                     </button>
@@ -56,16 +56,16 @@
             </div>
 
             <!-- ゲーム状態表示 -->
-            <div class="game-state">
+            <div id="game-state" class="game-state">
                 <div id="phase-indicator">Phase 1: 偽装テトリス</div>
                 <div id="game-status">ゲーム進行中</div>
             </div>
 
             <!-- ゲームオーバー画面 -->
             <div id="game-over-modal" class="game-over-modal hidden">
-                <div class="game-over-content">
-                    <h1>ゲームオーバー</h1>
-                    <div class="final-score">
+                <div id="game-over-content" class="game-over-content">
+                    <h1 id="game-over-title">ゲームオーバー</h1>
+                    <div id="final-score-container" class="final-score">
                         <p>最終スコア: <span id="final-score">0</span></p>
                         <p>最大深度: <span id="final-depth">0</span>m</p>
                         <p>生存時間: <span id="final-time">0</span>s</p>
@@ -77,7 +77,7 @@
     </div>
 
     <!-- バージョン情報 -->
-    <div class="version-info">v1.0.2</div>
+    <div id="version-info" class="version-info">v1.0.2</div>
 
     <script src="game.js"></script>
 </body>
