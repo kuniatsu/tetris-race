@@ -542,6 +542,18 @@ function draw() {
         }
     }
 
+    // キャンバス全体を黒で塗りつぶし
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // ゲーム領域を中央に配置するためのオフセット
+    const offsetX = (canvas.width - CANVAS_WIDTH) / 2;
+    const offsetY = (canvas.height - CANVAS_HEIGHT) / 2;
+
+    // 描画コンテキストを保存
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+
     // 背景
     ctx.fillStyle = '#001100';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -660,14 +672,17 @@ function draw() {
         }
     }
 
+    // 描画コンテキストを復元
+    ctx.restore();
+
     // ゲームオーバー表示
     if (gameState.gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#ff0000';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('GAME OVER', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
     }
 }
 
