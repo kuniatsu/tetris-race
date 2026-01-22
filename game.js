@@ -419,9 +419,17 @@ function checkLineClears() {
     for (let i = rowsToDelete.length - 1; i >= 0; i--) {
         gameState.board.splice(rowsToDelete[i], 1);
     }
-    // 削除した行数分の空行を上に追加
-    for (let i = 0; i < rowsToDelete.length; i++) {
-        gameState.board.unshift(Array(GRID_WIDTH).fill(0));
+
+    // ボトムラインをクリアした場合、下に空行を追加（穴を作る）
+    if (bottomLineCleared) {
+        for (let i = 0; i < rowsToDelete.length; i++) {
+            gameState.board.push(Array(GRID_WIDTH).fill(0));
+        }
+    } else {
+        // 通常のラインクリア：削除した行数分の空行を上に追加
+        for (let i = 0; i < rowsToDelete.length; i++) {
+            gameState.board.unshift(Array(GRID_WIDTH).fill(0));
+        }
     }
 
     // Phase 1でボトムラインをクリアした場合、底を抜く
