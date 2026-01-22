@@ -435,7 +435,8 @@ function checkLineClears() {
             progress: 0,
             duration: 0.5 // 0.5秒でアニメーション完了
         };
-        // Phase 2への遷移はまだしない（ピースが底を超えるまで待つ）
+        // すぐにPhase 2へ移行（ボトムラインが抜けた）
+        transitionToPhase(PHASES.FREE_FALL);
     }
 
     // スコア加算
@@ -538,18 +539,9 @@ function updateGame() {
 
     // ブロック上昇アニメーション更新
     if (gameState.blockShiftAnimation && gameState.blockShiftAnimation.isAnimating) {
-        gameState.blockShiftAnimation.progress += 0.016 / gameState.blockShiftAnimation.duration; // 16msフレーム
+        gameState.blockShiftAnimation.progress += 0.1 / gameState.blockShiftAnimation.duration; // 100msフレーム
         if (gameState.blockShiftAnimation.progress >= 1) {
             gameState.blockShiftAnimation.isAnimating = false;
-        }
-    }
-
-    // ボトムラインを通過したかチェック（Phase 1でのボトムライン抜け）
-    if (gameState.bottomBroken && gameState.phase === PHASES.DISGUISE && gameState.currentPiece) {
-        // ピースが底を超えたかチェック（y座標 >= GRID_HEIGHT）
-        if (gameState.currentPiece.y >= GRID_HEIGHT) {
-            transitionToPhase(PHASES.FREE_FALL);
-            gameState.bottomBroken = false;
         }
     }
 
