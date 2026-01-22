@@ -7,10 +7,10 @@ const CANVAS_HEIGHT = GRID_HEIGHT * BLOCK_SIZE;
 
 // ゲームフェーズ
 const PHASES = {
-    DISGUISE: 1,        // 偽装テトリス
-    FREE_FALL: 2,       // 自由落下
-    ACCELERATION: 3,    // 加速と覚醒
-    ENDLESS_DRIFT: 4    // ランダムレース
+    DISGUISE: 1,        // Phase 1: 通常のテトリス
+    BOTTOM_BROKEN: 2,   // Phase 2: そこが抜けた通常のテトリス
+    FREE_FALL: 3,       // Phase 3: 無限落下
+    ENDLESS_DRIFT: 4    // Phase 4: ランダムレース
 };
 
 // テトリミノの定義
@@ -316,7 +316,7 @@ function canPlacePiece(piece) {
                     return false;
                 }
             } else {
-                // Phase 2以降は上限のみチェック
+                // Phase 2以降（底が抜けた状態）は上限のみチェック
                 if (newY < 0) {
                     return false;
                 }
@@ -349,7 +349,7 @@ function movePiece(dx, dy) {
         // 深度スコア計算
         if (dy > 0) {
             gameState.depthDistance += dy;
-            // Phase 2以降では落下距離に応じてスコアを加算
+            // Phase 3以降では落下距離に応じてスコアを加算（無限落下から）
             if (gameState.phase >= PHASES.FREE_FALL) {
                 gameState.score += dy * 10;
             }
@@ -443,8 +443,8 @@ function checkLineClears() {
             progress: 0,
             duration: 0.5 // 0.5秒でアニメーション完了
         };
-        // すぐにPhase 2へ移行（ボトムラインが抜けた）
-        transitionToPhase(PHASES.FREE_FALL);
+        // Phase 2へ移行（底が抜けた通常のテトリス）
+        transitionToPhase(PHASES.BOTTOM_BROKEN);
     }
 
     // スコア加算
@@ -461,17 +461,18 @@ function transitionToPhase(newPhase) {
     gameState.phaseStartTime = Date.now();
 
     switch (newPhase) {
-        case PHASES.FREE_FALL:
-            gameState.freefall_start_time = Date.now();
-            gameState.gravity = 1; // 自由落下は通常速度
-            gameState.viewportY = GRID_HEIGHT; // ビューポートをリセット（底を超えた直後から表示）
-            generateObstacles(); // 障害物を生成開始
+        case PHASES.BOTTOM_BROKEN:
+            // Phase 2: そこが抜けた通常のテトリス
+            // 現在の重力速度を保持（Phase 1 と同じ）
             break;
-        case PHASES.ACCELERATION:
-            gameState.acceleration_start_time = Date.now();
-            gameState.gravity = 2; // 加速フェーズは速度2倍
+        case PHASES.FREE_FALL:
+            // Phase 3: 無限落下
+            gameState.freefall_start_time = Date.now();
+            gameState.gravity = 1; // 無限落下は通常速度
+            gameState.viewportY = GRID_HEIGHT; // ビューポートをリセット（底を超えた直後から表示）
             break;
         case PHASES.ENDLESS_DRIFT:
+            // Phase 4: ランダムレース
             gameState.gravity = 3; // エンドレスは速度3倍
             generateObstacles();
             break;
@@ -553,16 +554,22 @@ function updateGame() {
         }
     }
 
+    // Phase 2でピースが底を通過したら Phase 3に遷移
+    if (gameState.phase === PHASES.BOTTOM_BROKEN && gameState.currentPiece) {
+        if (gameState.currentPiece.y >= GRID_HEIGHT) {
+            transitionToPhase(PHASES.FREE_FALL);
+        }
+    }
+
     // フェーズ遷移チェック
     if (gameState.phase === PHASES.FREE_FALL) {
         const freefall_time = (Date.now() - gameState.freefall_start_time) / 1000;
-        if (freefall_time > 10) {
-            transitionToPhase(PHASES.ACCELERATION);
-        }
-    } else if (gameState.phase === PHASES.ACCELERATION) {
-        const acceleration_time = (Date.now() - gameState.acceleration_start_time) / 1000;
-        if (acceleration_time > 10) {
+        if (freefall_time > 20) {
+            // Phase 3 で 20秒後 → Phase 4 に遷移
             transitionToPhase(PHASES.ENDLESS_DRIFT);
+        } else if (freefall_time > 10) {
+            // Phase 3 で 10秒後に加速
+            gameState.gravity = 2;
         }
     }
 
@@ -616,9 +623,9 @@ function updateDisplay() {
     document.getElementById('total-score').textContent = totalScore;
 
     const phaseNames = {
-        1: 'Phase 1: 偽装テトリス',
-        2: 'Phase 2: 自由落下',
-        3: 'Phase 3: 加速と覚醒',
+        1: 'Phase 1: 通常のテトリス',
+        2: 'Phase 2: そこが抜けた通常のテトリス',
+        3: 'Phase 3: 無限落下',
         4: 'Phase 4: ランダムレース'
     };
     document.getElementById('phase-indicator').textContent = phaseNames[gameState.phase];
