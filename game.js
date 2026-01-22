@@ -92,13 +92,13 @@ let gameState = {
     bottomBroken: false,
     gravity: 1,
     fallCounter: 0, // 落下カウンター
-    obstacles: [],
     freefall_start_time: 0,
     acceleration_start_time: 0,
     maxYReached: 0, // 最大の深度（最も下に到達したY座標）
     airResistance: 0, // 空気抵抗（0=小、1=大）
     viewportY: 0, // ビューポート上部のY座標（無限スクロール用）
     blockShiftAnimation: null, // ブロックが上に上がるアニメーション状態
+    lastObstacleY: GRID_HEIGHT, // 最後に生成した障害物の最大Y座標
 };
 
 // ボード初期化
@@ -130,13 +130,13 @@ function startGame() {
     gameState.bottomBroken = false;
     gameState.gravity = 0.5; // Phase 1は遅い落下速度
     gameState.fallCounter = 0;
-    gameState.obstacles = [];
     gameState.freefall_start_time = 0;
     gameState.acceleration_start_time = 0;
     gameState.maxYReached = 0;
     gameState.airResistance = 0;
     gameState.viewportY = 0;
     gameState.blockShiftAnimation = null;
+    gameState.lastObstacleY = GRID_HEIGHT;
 
     gameState.currentPiece = createRandomPiece();
     gameState.nextPiece = createRandomPiece();
@@ -492,10 +492,11 @@ function generateObstacles() {
     }
 
     // ボード上に障害物ブロックを配置
-    for (let y = GRID_HEIGHT; y < GRID_HEIGHT + 50; y++) {
+    for (let y = gameState.lastObstacleY; y < gameState.lastObstacleY + 50; y++) {
         const patternType = Math.floor(Math.random() * 4);
         generateObstaclePattern(patternType, y, difficulty);
     }
+    gameState.lastObstacleY += 50;
 }
 
 // 障害物パターン生成（ボード上に直接配置）
@@ -689,16 +690,9 @@ function updateGame() {
 
     // Phase 3・4の障害物を更新（新しい障害物を追加）
     if (gameState.phase >= PHASES.FREE_FALL) {
-        // 最下行の障害物がボード内に十分あったら、新しい障害物を追加
-        const maxBoardY = gameState.board.length;
-        if (maxBoardY < gameState.viewportY + GRID_HEIGHT + 30) {
-            const difficulty = gameState.phase === PHASES.FREE_FALL ?
-                Math.min(2, Math.floor((Date.now() - gameState.freefall_start_time) / 5000)) : 2;
-            for (let i = 0; i < 5; i++) {
-                const patternType = Math.floor(Math.random() * 4);
-                const newY = maxBoardY + i;
-                generateObstaclePattern(patternType, newY, difficulty);
-            }
+        // ビューポートの下方に障害物がなくなったら、新しく生成
+        if (gameState.lastObstacleY < gameState.viewportY + GRID_HEIGHT + 50) {
+            generateObstacles();
         }
     }
 
@@ -883,24 +877,6 @@ function draw() {
                         drawBlockAt(ctx, x, screenY / BLOCK_SIZE, piece.type);
                     }
                 }
-            }
-        }
-    }
-
-    // 障害物描画（Phase 3・4用）
-    if (gameState.phase >= PHASES.FREE_FALL) {
-        // Phase 3では少し透明度を上げる、Phase 4では濃い灰色
-        const opacity = gameState.phase === PHASES.FREE_FALL ? 0.3 : 0.5;
-        ctx.fillStyle = `rgba(100, 100, 100, ${opacity})`;
-        for (const obstacle of gameState.obstacles) {
-            const screenY = (obstacle.y - gameState.viewportY) * BLOCK_SIZE;
-            if (screenY >= -obstacle.height * BLOCK_SIZE && screenY < CANVAS_HEIGHT) {
-                ctx.fillRect(
-                    obstacle.x * BLOCK_SIZE,
-                    screenY,
-                    obstacle.width * BLOCK_SIZE,
-                    obstacle.height * BLOCK_SIZE
-                );
             }
         }
     }
