@@ -98,6 +98,7 @@ let gameState = {
     maxYReached: 0, // 最大の深度（最も下に到達したY座標）
     airResistance: 0, // 空気抵抗（0=小、1=大）
     viewportY: 0, // ビューポート上部のY座標（無限スクロール用）
+    blockShiftAnimation: null, // ブロックが上に上がるアニメーション状態
 };
 
 // ボード初期化
@@ -135,6 +136,7 @@ function startGame() {
     gameState.maxYReached = 0;
     gameState.airResistance = 0;
     gameState.viewportY = 0;
+    gameState.blockShiftAnimation = null;
 
     gameState.currentPiece = createRandomPiece();
     gameState.nextPiece = createRandomPiece();
@@ -427,7 +429,13 @@ function checkLineClears() {
         gameState.bottomBroken = true;
         // ボードを大きく拡張して、壁が下に伸びる演出を実現
         expandBoard(gameState.board.length + 50);
-        transitionToPhase(PHASES.FREE_FALL);
+        // ブロックが上に上がる演出：アニメーション開始
+        gameState.blockShiftAnimation = {
+            isAnimating: true,
+            progress: 0,
+            duration: 0.5 // 0.5秒でアニメーション完了
+        };
+        // Phase 2への遷移はまだしない（ピースが底を超えるまで待つ）
     }
 
     // スコア加算
@@ -527,6 +535,23 @@ function updateGame() {
     processKeyboardInput();
 
     gameState.time = Math.floor((Date.now() - gameState.startTime) / 1000);
+
+    // ブロック上昇アニメーション更新
+    if (gameState.blockShiftAnimation && gameState.blockShiftAnimation.isAnimating) {
+        gameState.blockShiftAnimation.progress += 0.016 / gameState.blockShiftAnimation.duration; // 16msフレーム
+        if (gameState.blockShiftAnimation.progress >= 1) {
+            gameState.blockShiftAnimation.isAnimating = false;
+        }
+    }
+
+    // ボトムラインを通過したかチェック（Phase 1でのボトムライン抜け）
+    if (gameState.bottomBroken && gameState.phase === PHASES.DISGUISE && gameState.currentPiece) {
+        // ピースが底を超えたかチェック（y座標 >= GRID_HEIGHT）
+        if (gameState.currentPiece.y >= GRID_HEIGHT) {
+            transitionToPhase(PHASES.FREE_FALL);
+            gameState.bottomBroken = false;
+        }
+    }
 
     // フェーズ遷移チェック
     if (gameState.phase === PHASES.FREE_FALL) {
@@ -722,11 +747,17 @@ function draw() {
     const startRow = Math.floor(gameState.viewportY);
     const endRow = Math.min(startRow + GRID_HEIGHT, gameState.board.length);
 
+    // ブロック上昇アニメーション中は、ブロックをy方向にシフト
+    let blockShiftPixels = 0;
+    if (gameState.blockShiftAnimation && gameState.blockShiftAnimation.isAnimating) {
+        blockShiftPixels = -gameState.blockShiftAnimation.progress * BLOCK_SIZE; // 負の値で上に移動
+    }
+
     for (let row = startRow; row < endRow; row++) {
         for (let col = 0; col < GRID_WIDTH; col++) {
             if (gameState.board[row] && gameState.board[row][col] !== 0) {
-                const screenY = (row - startRow) * BLOCK_SIZE;
-                if (screenY >= 0 && screenY < CANVAS_HEIGHT) {
+                let screenY = (row - startRow) * BLOCK_SIZE + blockShiftPixels;
+                if (screenY >= -BLOCK_SIZE && screenY < CANVAS_HEIGHT) {
                     drawBlockAt(ctx, col, screenY / BLOCK_SIZE, gameState.board[row][col]);
                 }
             }
@@ -741,7 +772,7 @@ function draw() {
                 if (piece.shape[i][j] !== 0) {
                     const x = piece.x + j;
                     const y = piece.y + i;
-                    const screenY = (y - gameState.viewportY) * BLOCK_SIZE;
+                    let screenY = (y - gameState.viewportY) * BLOCK_SIZE + blockShiftPixels;
                     if (x >= 0 && x < GRID_WIDTH && screenY >= -BLOCK_SIZE && screenY < CANVAS_HEIGHT) {
                         drawBlockAt(ctx, x, screenY / BLOCK_SIZE, piece.type);
                     }
