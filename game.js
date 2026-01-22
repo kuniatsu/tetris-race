@@ -470,6 +470,7 @@ function transitionToPhase(newPhase) {
             gameState.freefall_start_time = Date.now();
             gameState.gravity = 1; // 無限落下は通常速度
             gameState.viewportY = GRID_HEIGHT; // ビューポートをリセット（底を超えた直後から表示）
+            generateObstacles(); // 障害物を生成開始
             break;
         case PHASES.ENDLESS_DRIFT:
             // Phase 4: ランダムレース
@@ -479,59 +480,88 @@ function transitionToPhase(newPhase) {
     }
 }
 
-// 障害物生成（Phase 4用）
+// 障害物生成（Phase 3・4用）
 function generateObstacles() {
     gameState.obstacles = [];
+
+    // 難易度を計算（Phase 3では時間経過で上昇）
+    let difficulty = 0;
+    if (gameState.phase === PHASES.FREE_FALL) {
+        const freefall_time = (Date.now() - gameState.freefall_start_time) / 1000;
+        difficulty = Math.min(2, Math.floor(freefall_time / 5)); // 0, 1, 2 の3段階
+    } else if (gameState.phase === PHASES.ENDLESS_DRIFT) {
+        difficulty = 2; // Phase 4は最高難易度
+    }
+
     // ランダムな障害物パターンを生成
     for (let y = GRID_HEIGHT; y < GRID_HEIGHT + 50; y++) {
         const patternType = Math.floor(Math.random() * 4);
-        const obstacle = generateObstaclePattern(patternType, y);
+        const obstacle = generateObstaclePattern(patternType, y, difficulty);
         gameState.obstacles.push(...obstacle);
     }
 }
 
 // 障害物パターン生成
-function generateObstaclePattern(type, startY) {
+function generateObstaclePattern(type, startY, difficulty = 0) {
     const obstacles = [];
+    // 難易度に基づいた出現確率
+    // difficulty 0: 簡単（疎），difficulty 1: 中程度，difficulty 2: 難しい（密）
+    const spawnChance = [0.4, 0.6, 0.8][difficulty];
+
     switch (type) {
-        case 0: // Straight
-            if (Math.random() < 0.3) {
+        case 0: // Straight - 中央に立てかけるブロック
+            if (Math.random() < spawnChance * 0.3) {
+                const height = difficulty === 0 ? 2 : (difficulty === 1 ? 3 : 4);
                 obstacles.push({
                     x: Math.floor(GRID_WIDTH / 2),
                     y: startY,
                     width: 1,
-                    height: 2
+                    height: height
                 });
             }
             break;
-        case 1: // Chicane
-            const sideX = Math.random() < 0.5 ? 2 : GRID_WIDTH - 3;
-            obstacles.push({
-                x: sideX,
-                y: startY,
-                width: 2,
-                height: 3
-            });
-            break;
-        case 2: // S-Curve
-            if (Math.random() < 0.5) {
-                obstacles.push({ x: 1, y: startY, width: 2, height: 2 });
-                obstacles.push({ x: GRID_WIDTH - 3, y: startY + 2, width: 2, height: 2 });
+        case 1: // Chicane - 側面の障害
+            if (Math.random() < spawnChance) {
+                const sideX = Math.random() < 0.5 ? 2 : GRID_WIDTH - 3;
+                const height = difficulty === 0 ? 2 : (difficulty === 1 ? 3 : 4);
+                obstacles.push({
+                    x: sideX,
+                    y: startY,
+                    width: 2,
+                    height: height
+                });
             }
             break;
-        case 3: // Narrow Gate
-            obstacles.push({
-                x: 0,
-                y: startY,
-                width: Math.floor(GRID_WIDTH / 2) - 1,
-                height: 1
-            });
-            obstacles.push({
-                x: Math.ceil(GRID_WIDTH / 2) + 1,
-                y: startY,
-                width: Math.floor(GRID_WIDTH / 2) - 1,
-                height: 1
-            });
+        case 2: // S-Curve - 複合障害
+            if (Math.random() < spawnChance * 0.7) {
+                obstacles.push({ x: 1, y: startY, width: 2, height: 2 });
+                if (difficulty >= 1) {
+                    obstacles.push({ x: GRID_WIDTH - 3, y: startY + 2, width: 2, height: 2 });
+                }
+                if (difficulty >= 2) {
+                    obstacles.push({ x: 4, y: startY + 4, width: 2, height: 2 });
+                }
+            }
+            break;
+        case 3: // Narrow Gate - 狭い門
+            if (Math.random() < spawnChance * 0.9) {
+                let gateWidth = difficulty === 0 ? 4 : (difficulty === 1 ? 3 : 2);
+                const leftWidth = Math.floor((GRID_WIDTH - gateWidth) / 2);
+                const rightStart = leftWidth + gateWidth;
+
+                obstacles.push({
+                    x: 0,
+                    y: startY,
+                    width: leftWidth,
+                    height: 1
+                });
+                obstacles.push({
+                    x: rightStart,
+                    y: startY,
+                    width: GRID_WIDTH - rightStart,
+                    height: 1
+                });
+            }
             break;
     }
     return obstacles;
@@ -606,6 +636,22 @@ function updateGame() {
         if (!moved) {
             lockPiece();
             checkLineClears();
+        }
+    }
+
+    // Phase 3・4の障害物を更新（新しい障害物を追加）
+    if (gameState.phase >= PHASES.FREE_FALL && gameState.obstacles.length > 0) {
+        const maxObstacleY = Math.max(...gameState.obstacles.map(o => o.y + o.height));
+        // 最下行の障害物がボード内に十分あったら、新しい障害物を追加
+        if (maxObstacleY < gameState.viewportY + GRID_HEIGHT + 30) {
+            const difficulty = gameState.phase === PHASES.FREE_FALL ?
+                Math.min(2, Math.floor((Date.now() - gameState.freefall_start_time) / 5000)) : 2;
+            for (let i = 0; i < 5; i++) {
+                const patternType = Math.floor(Math.random() * 4);
+                const newY = maxObstacleY + i;
+                const obstacle = generateObstaclePattern(patternType, newY, difficulty);
+                gameState.obstacles.push(...obstacle);
+            }
         }
     }
 
@@ -788,9 +834,11 @@ function draw() {
         }
     }
 
-    // 障害物描画（Phase 4用）
-    if (gameState.phase === PHASES.ENDLESS_DRIFT) {
-        ctx.fillStyle = 'rgba(100, 100, 100, 0.5)';
+    // 障害物描画（Phase 3・4用）
+    if (gameState.phase >= PHASES.FREE_FALL) {
+        // Phase 3では少し透明度を上げる、Phase 4では濃い灰色
+        const opacity = gameState.phase === PHASES.FREE_FALL ? 0.3 : 0.5;
+        ctx.fillStyle = `rgba(100, 100, 100, ${opacity})`;
         for (const obstacle of gameState.obstacles) {
             const screenY = (obstacle.y - gameState.viewportY) * BLOCK_SIZE;
             if (screenY >= -obstacle.height * BLOCK_SIZE && screenY < CANVAS_HEIGHT) {
