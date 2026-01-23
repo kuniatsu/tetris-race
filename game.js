@@ -576,40 +576,6 @@ function placeObstacleBlock(x, y, width, height) {
     }
 }
 
-// 障害物との衝突判定
-function hasCollidedWithObstacle(piece) {
-    for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-            if (piece.shape[i][j] === 0) continue;
-            const x = piece.x + j;
-            const y = piece.y + i;
-            if (y >= 0 && y < gameState.board.length && x >= 0 && x < GRID_WIDTH) {
-                if (gameState.board[y][x] === 'OBSTACLE') {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-// ピースを一番上にリセット
-function resetPieceToTop() {
-    // 次のピースに交代
-    gameState.currentPiece = gameState.nextPiece;
-    gameState.nextPiece = gameState.nextPiece2;
-    gameState.nextPiece2 = createRandomPiece();
-
-    // 空気抵抗をリセット
-    gameState.airResistance = 0;
-
-    // 新しいピースが配置できない場合、ゲームオーバー
-    if (!canPlacePiece(gameState.currentPiece)) {
-        gameState.gameOver = true;
-        gameState.gameActive = false;
-    }
-}
-
 // ゲーム更新
 function updateGame() {
     if (!gameState.gameActive) return;
@@ -677,14 +643,8 @@ function updateGame() {
         }
 
         if (!moved) {
-            // 障害物に接触したかチェック
-            if (hasCollidedWithObstacle(gameState.currentPiece)) {
-                // ピースを一番上に戻す
-                resetPieceToTop();
-            } else {
-                lockPiece();
-                checkLineClears();
-            }
+            lockPiece();
+            checkLineClears();
         }
     }
 
