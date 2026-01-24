@@ -274,10 +274,10 @@ function getBlockPositions(shape) {
 
 // 空気抵抗更新
 function updateAirResistance(piece, shape) {
-    if (gameState.phase >= PHASES.ACCELERATION) {
-        // I字の場合の空気抵抗判定
+    // Phase 3以降で使用可能
+    if (gameState.phase >= PHASES.FREE_FALL) {
         if (piece.type === 'I') {
-            gameState.airResistance = 1; // I字は常に空気抵抗あり
+            gameState.airResistance = 1;
         }
     }
 }
@@ -480,23 +480,14 @@ function transitionToPhase(newPhase) {
     }
 }
 
-// 障害物生成（Phase 3・4用）
+// 障害物初期生成（Phase 3開始時のみ）
 function generateObstacles() {
-    // 難易度を計算（Phase 3では時間経過で上昇）
-    let difficulty = 0;
-    if (gameState.phase === PHASES.FREE_FALL) {
-        const freefall_time = (Date.now() - gameState.freefall_start_time) / 1000;
-        difficulty = Math.min(2, Math.floor(freefall_time / 5)); // 0, 1, 2 の3段階
-    } else if (gameState.phase === PHASES.ENDLESS_DRIFT) {
-        difficulty = 2; // Phase 4は最高難易度
-    }
-
-    // ボード上に障害物ブロックを配置
-    for (let y = gameState.lastObstacleY; y < gameState.lastObstacleY + 50; y++) {
+    // Phase 3開始時に最初の障害物を生成
+    for (let y = GRID_HEIGHT; y < GRID_HEIGHT + 50; y++) {
         const patternType = Math.floor(Math.random() * 4);
-        generateObstaclePattern(patternType, y, difficulty);
+        generateObstaclePattern(patternType, y, 0); // 最初は簡単
     }
-    gameState.lastObstacleY += 50;
+    gameState.lastObstacleY = GRID_HEIGHT + 50;
 }
 
 // 障害物パターン生成（ボード上に直接配置）
@@ -593,30 +584,34 @@ function updateGame() {
         }
     }
 
-    // Phase 2でピースが底を通過したら Phase 3に遷移
+    // フェーズ遷移チェック
+    // Phase 2: ピースが底を通過したら Phase 3へ
     if (gameState.phase === PHASES.BOTTOM_BROKEN && gameState.currentPiece) {
         if (gameState.currentPiece.y >= GRID_HEIGHT) {
             transitionToPhase(PHASES.FREE_FALL);
         }
     }
 
-    // フェーズ遷移チェック
+    // Phase 3: 時間経過で加速 + 20秒後に Phase 4へ
     if (gameState.phase === PHASES.FREE_FALL) {
         const freefall_time = (Date.now() - gameState.freefall_start_time) / 1000;
-        if (freefall_time > 20) {
-            // Phase 3 で 20秒後 → Phase 4 に遷移
-            transitionToPhase(PHASES.ENDLESS_DRIFT);
-        } else if (freefall_time > 10) {
-            // Phase 3 で 10秒後に加速
+
+        // 10秒以降で加速
+        if (freefall_time >= 10) {
             gameState.gravity = 2;
+        }
+
+        // 20秒後に Phase 4へ移行
+        if (freefall_time >= 20) {
+            transitionToPhase(PHASES.ENDLESS_DRIFT);
         }
     }
 
-    // Phase 2以降でボード拡張
-    if (gameState.phase >= PHASES.FREE_FALL && gameState.currentPiece) {
+    // Phase 2以降でボード自動拡張
+    if (gameState.phase >= PHASES.BOTTOM_BROKEN && gameState.currentPiece) {
         const maxPieceY = gameState.currentPiece.y + 4;
-        if (maxPieceY >= gameState.board.length - 5) {
-            expandBoard(gameState.board.length + 20);
+        if (maxPieceY >= gameState.board.length - 10) {
+            expandBoard(gameState.board.length + 50);
         }
     }
 
@@ -648,11 +643,18 @@ function updateGame() {
         }
     }
 
-    // Phase 3・4の障害物を更新（新しい障害物を追加）
+    // Phase 3・4の障害物を更新
     if (gameState.phase >= PHASES.FREE_FALL) {
-        // ビューポートの下方に障害物がなくなったら、新しく生成
-        if (gameState.lastObstacleY < gameState.viewportY + GRID_HEIGHT + 50) {
-            generateObstacles();
+        // 必要に応じて追加で障害物を生成
+        if (gameState.lastObstacleY < gameState.board.length) {
+            const difficulty = gameState.phase === PHASES.FREE_FALL ?
+                Math.min(2, Math.floor((Date.now() - gameState.freefall_start_time) / 5000)) : 2;
+
+            for (let y = gameState.lastObstacleY; y < gameState.board.length; y++) {
+                const patternType = Math.floor(Math.random() * 4);
+                generateObstaclePattern(patternType, y, difficulty);
+            }
+            gameState.lastObstacleY = gameState.board.length;
         }
     }
 
